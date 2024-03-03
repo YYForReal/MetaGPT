@@ -179,3 +179,7 @@ cov.xml
 *-structure.csv
 *-structure.json
 metagpt/tools/schemas
+
+
+config/*.yaml
+config/config2.yaml

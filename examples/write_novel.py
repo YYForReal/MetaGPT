@@ -30,7 +30,7 @@ class Novel(BaseModel):
 
 class Chapter(BaseModel):
     name: str = Field(default="Chapter 1", description="The name of the chapter.")
-    content: str = Field(default="...", description="The content of the chapter. No more than 1000 words.")
+    content: str = Field(default="...", description="The content of the chapter. No more than 2000 words.")
 
 
 class Chapters(BaseModel):
@@ -40,7 +40,7 @@ class Chapters(BaseModel):
             {"name": "Chapter 2", "content": "..."},
             {"name": "Chapter 3", "content": "..."},
         ],
-        description="The chapters of the novel.",
+        description="The chapters of the novel.At least 10 chapters. No more than 20 chapters.",
     )
 
 

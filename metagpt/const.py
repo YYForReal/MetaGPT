@@ -53,6 +53,7 @@ DATA_PATH = METAGPT_ROOT / "data"
 TEST_DATA_PATH = METAGPT_ROOT / "tests/data"
 RESEARCH_PATH = DATA_PATH / "research"
 TUTORIAL_PATH = DATA_PATH / "tutorial_docx"
+NOVEL_PATH = DATA_PATH / "novel"
 INVOICE_OCR_TABLE_PATH = DATA_PATH / "invoice_table"
 
 UT_PATH = DATA_PATH / "ut"

@@ -32,7 +32,8 @@ class WriteDirectory(Action):
             topic: The tutorial topic.
 
         Returns:
-            the tutorial directory information, including {"title": "xxx", "directory": [{"dir 1": ["sub dir 1", "sub dir 2"]}]}.
+            the tutorial directory information, 
+            including {"title": "xxx", "directory": [{"dir 1": ["sub dir 1", "sub dir 2"]}]}.
         """
         prompt = DIRECTORY_PROMPT.format(topic=topic, language=self.language)
         resp = await self._aask(prompt=prompt)
