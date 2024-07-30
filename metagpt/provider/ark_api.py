@@ -30,7 +30,13 @@ class ArkLLM(OpenAILLM):
             collected_messages.append(chunk_message)
             if chunk.usage:
                 # 火山方舟的流式调用会在最后一个chunk中返回usage,最后一个chunk的choices为[]
-                usage = CompletionUsage(**chunk.usage)
+                # usage = CompletionUsage(**chunk.usage)
+                usage_data = chunk.usage
+                if isinstance(usage_data, CompletionUsage):
+                    usage_data = usage_data.__dict__
+                usage = CompletionUsage(**usage_data)
+
+
 
         log_llm_stream("\n")
         full_reply_content = "".join(collected_messages)
