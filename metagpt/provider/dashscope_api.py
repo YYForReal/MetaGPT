@@ -24,18 +24,11 @@ from dashscope.common.error import (
     ModelRequired,
     UnsupportedApiProtocol,
 )
-from tenacity import (
-    after_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
 
-from metagpt.logs import log_llm_stream, logger
+from metagpt.const import USE_CONFIG_TIMEOUT
+from metagpt.logs import log_llm_stream
 from metagpt.provider.base_llm import BaseLLM, LLMConfig
 from metagpt.provider.llm_provider_registry import LLMType, register_provider
-from metagpt.provider.openai_api import log_and_reraise
 from metagpt.utils.cost_manager import CostManager
 from metagpt.utils.token_counter import DASHSCOPE_TOKEN_COSTS
 
@@ -210,16 +203,16 @@ class DashScopeLLM(BaseLLM):
         self._update_costs(dict(resp.usage))
         return resp.output
 
-    async def _achat_completion(self, messages: list[dict]) -> GenerationOutput:
+    async def _achat_completion(self, messages: list[dict], timeout: int = USE_CONFIG_TIMEOUT) -> GenerationOutput:
         resp: GenerationResponse = await self.aclient.acall(**self._const_kwargs(messages, stream=False))
         self._check_response(resp)
         self._update_costs(dict(resp.usage))
         return resp.output
 
-    async def acompletion(self, messages: list[dict], timeout=3) -> GenerationOutput:
-        return await self._achat_completion(messages)
+    async def acompletion(self, messages: list[dict], timeout=USE_CONFIG_TIMEOUT) -> GenerationOutput:
+        return await self._achat_completion(messages, timeout=self.get_timeout(timeout))
 
-    async def _achat_completion_stream(self, messages: list[dict]) -> str:
+    async def _achat_completion_stream(self, messages: list[dict], timeout: int = USE_CONFIG_TIMEOUT) -> str:
         resp = await self.aclient.acall(**self._const_kwargs(messages, stream=True))
         collected_content = []
         usage = {}
@@ -233,16 +226,3 @@ class DashScopeLLM(BaseLLM):
         self._update_costs(usage)
         full_content = "".join(collected_content)
         return full_content
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_random_exponential(min=1, max=60),
-        after=after_log(logger, logger.level("WARNING").name),
-        retry=retry_if_exception_type(ConnectionError),
-        retry_error_callback=log_and_reraise,
-    )
-    async def acompletion_text(self, messages: list[dict], stream=False, timeout: int = 3) -> str:
-        if stream:
-            return await self._achat_completion_stream(messages)
-        resp = await self._achat_completion(messages)
-        return self.get_choice_text(resp)

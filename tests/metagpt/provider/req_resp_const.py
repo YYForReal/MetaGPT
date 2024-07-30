@@ -3,6 +3,14 @@
 # @Desc   : default request & response data for provider unittest
 
 
+from anthropic.types import (
+    ContentBlock,
+    ContentBlockDeltaEvent,
+    Message,
+    MessageStartEvent,
+    TextDelta,
+)
+from anthropic.types import Usage as AnthropicUsage
 from dashscope.api_entities.dashscope_response import (
     DashScopeAPIResponse,
     GenerationOutput,
@@ -130,6 +138,38 @@ def get_dashscope_response(name: str) -> GenerationResponse:
     )
 
 
+# For Anthropic
+def get_anthropic_response(name: str, stream: bool = False) -> Message:
+    if stream:
+        return [
+            MessageStartEvent(
+                message=Message(
+                    id="xxx",
+                    model=name,
+                    role="assistant",
+                    type="message",
+                    content=[ContentBlock(text="", type="text")],
+                    usage=AnthropicUsage(input_tokens=10, output_tokens=10),
+                ),
+                type="message_start",
+            ),
+            ContentBlockDeltaEvent(
+                index=0,
+                delta=TextDelta(text=resp_cont_tmpl.format(name=name), type="text_delta"),
+                type="content_block_delta",
+            ),
+        ]
+    else:
+        return Message(
+            id="xxx",
+            model=name,
+            role="assistant",
+            type="message",
+            content=[ContentBlock(text=resp_cont_tmpl.format(name=name), type="text")],
+            usage=AnthropicUsage(input_tokens=10, output_tokens=10),
+        )
+
+
 # For llm general chat functions call
 async def llm_general_chat_funcs_test(llm: BaseLLM, prompt: str, messages: list[dict], resp_cont: str):
     resp = await llm.aask(prompt, stream=False)
@@ -143,3 +183,90 @@ async def llm_general_chat_funcs_test(llm: BaseLLM, prompt: str, messages: list[
 
     resp = await llm.acompletion_text(messages, stream=True)
     assert resp == resp_cont
+
+
+# For Amazon Bedrock
+# Check the API documentation of each model
+# https://docs.aws.amazon.com/bedrock/latest/userguide
+BEDROCK_PROVIDER_REQUEST_BODY = {
+    "mistral": {"prompt": "", "max_tokens": 0, "stop": [], "temperature": 0.0, "top_p": 0.0, "top_k": 0},
+    "meta": {"prompt": "", "temperature": 0.0, "top_p": 0.0, "max_gen_len": 0},
+    "ai21": {
+        "prompt": "",
+        "temperature": 0.0,
+        "topP": 0.0,
+        "maxTokens": 0,
+        "stopSequences": [],
+        "countPenalty": {"scale": 0.0},
+        "presencePenalty": {"scale": 0.0},
+        "frequencyPenalty": {"scale": 0.0},
+    },
+    "cohere": {
+        "prompt": "",
+        "temperature": 0.0,
+        "p": 0.0,
+        "k": 0.0,
+        "max_tokens": 0,
+        "stop_sequences": [],
+        "return_likelihoods": "NONE",
+        "stream": False,
+        "num_generations": 0,
+        "logit_bias": {},
+        "truncate": "NONE",
+    },
+    "anthropic": {
+        "anthropic_version": "bedrock-2023-05-31",
+        "max_tokens": 0,
+        "system": "",
+        "messages": [{"role": "", "content": ""}],
+        "temperature": 0.0,
+        "top_p": 0.0,
+        "top_k": 0,
+        "stop_sequences": [],
+    },
+    "amazon": {
+        "inputText": "",
+        "textGenerationConfig": {"temperature": 0.0, "topP": 0.0, "maxTokenCount": 0, "stopSequences": []},
+    },
+}
+
+BEDROCK_PROVIDER_RESPONSE_BODY = {
+    "mistral": {"outputs": [{"text": "Hello World", "stop_reason": ""}]},
+    "meta": {"generation": "Hello World", "prompt_token_count": 0, "generation_token_count": 0, "stop_reason": ""},
+    "ai21": {
+        "id": "",
+        "prompt": {"text": "Hello World", "tokens": []},
+        "completions": [
+            {"data": {"text": "Hello World", "tokens": []}, "finishReason": {"reason": "length", "length": 2}}
+        ],
+    },
+    "cohere": {
+        "generations": [
+            {
+                "finish_reason": "",
+                "id": "",
+                "text": "Hello World",
+                "likelihood": 0.0,
+                "token_likelihoods": [{"token": 0.0}],
+                "is_finished": True,
+                "index": 0,
+            }
+        ],
+        "id": "",
+        "prompt": "",
+    },
+    "anthropic": {
+        "id": "",
+        "model": "",
+        "type": "message",
+        "role": "assistant",
+        "content": [{"type": "text", "text": "Hello World"}],
+        "stop_reason": "",
+        "stop_sequence": "",
+        "usage": {"input_tokens": 0, "output_tokens": 0},
+    },
+    "amazon": {
+        "inputTextTokenCount": 0,
+        "results": [{"tokenCount": 0, "outputText": "Hello World", "completionReason": ""}],
+    },
+}
