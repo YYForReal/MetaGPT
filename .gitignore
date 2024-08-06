@@ -193,3 +193,4 @@ config/*.yaml
 config/config2.yaml
 *.dot
 .python-version
+config/config2.yaml
