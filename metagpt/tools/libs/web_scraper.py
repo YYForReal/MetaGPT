@@ -1,3 +1,12 @@
+'''
+Author: yy 2572082773@qq.com
+Date: 2024-07-30 14:20:19
+LastEditTime: 2024-08-01 20:43:33
+FilePath: \code\LLM\MetaGPT\metagpt\tools\libs\web_scraper.py
+Description: 
+
+Copyright (c) 2024 by YYForReal, All Rights Reserved. 
+'''
 # metagpt/tools/libs/web_scraper.py
 import requests
 from metagpt.tools.tool_registry import register_tool
@@ -9,7 +18,7 @@ class WebScraper:
     A tool for scraping websites and extracting specific content.
     """
 
-    def __init__(self, base_url="http://192.168.31.136:3002/v0/scrape", api_key=""):
+    def __init__(self, base_url="http://localhost:3002/v0/scrape", api_key=""):
         """
         Initialize the WebScraper.
         """
@@ -39,6 +48,21 @@ class WebScraper:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
+        onlyIncludeTags = [
+            "#mainContent",
+            "#maincontent",
+            "#main-content",
+            ".mainContent",
+            ".maincontent",
+            ".main-content",
+            "main",
+            "#content",
+            ".main-content",
+            ".content",
+            "article",
+        ],
+        if only_main_content == False:
+            onlyIncludeTags.append("#course") # 目录级别的
         data = {
             "url": target_url,
             "pageOptions": {
@@ -47,20 +71,7 @@ class WebScraper:
                 "includeRawHtml": include_raw_html,
                 "screenshot": screenshot,
                 "waitFor": wait_for,
-                "onlyIncludeTags": [
-                    "#mainContent",
-                    "#maincontent",
-                    "#main-content",
-                    "#course",
-                    ".mainContent",
-                    ".maincontent",
-                    ".main-content",
-                    "main",
-                    "#content",
-                    ".main-content",
-                    ".content",
-                    "article",
-                ],
+                "onlyIncludeTags": onlyIncludeTags,
                 "headers": {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                 },
@@ -72,6 +83,8 @@ class WebScraper:
                     "svg",
                     "ins",
                     "#course",
+                    ".tiy",
+                    ".prenextnav",
                 ],  # #course is a custom tag to remove
             },
         }
