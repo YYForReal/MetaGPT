@@ -49,7 +49,7 @@ class EntityResolutionRole(Role):
         self.graph_controller = GraphController()
 
         if self.entities == []:
-            logger.log("No entities provided. using graph to find potential duplicates.")
+            logger.info("No entities provided. using graph to find potential duplicates.")
             self.entities = self.graph_controller.find_potential_duplicates_by_edit_distance()
             print(self.entities)
 

@@ -20,35 +20,10 @@ from typing import Dict
 
 from metagpt.actions import Action
 from metagpt.prompts.graph.desc import GENERATE_DESC_TEMPLATE
-# from metagpt.utils.common import OutputParser
 
-
-# class WriteDirectory(Action):
-#     """Action class for writing tutorial directories.
-
-#     Args:
-#         name: The name of the action.
-#         language: The language to output, default is "Chinese".
-#     """
-
-#     name: str = "WriteDirectory"
-#     language: str = "Chinese"
-
-#     async def run(self, topic: str, *args, **kwargs) -> Dict:
-#         """Execute the action to generate a tutorial directory according to the topic.
-
-#         Args:
-#             topic: The tutorial topic.
-
-#         Returns:
-#             the tutorial directory information, 
-#             including {"title": "xxx", "directory": [{"dir 1": ["sub dir 1", "sub dir 2"]}]}.
-#         """
-#         prompt = DIRECTORY_PROMPT.format(topic=topic, language=self.language)
-#         resp = await self._aask(prompt=prompt)
-#         return OutputParser.extract_struct(resp, dict)
 
 MAX_CONTENT_LENGTH = 80000
+
 class GenerateDescription(Action):
     """Action class for generating a description.
 
@@ -88,3 +63,5 @@ class GenerateDescription(Action):
             "description":desc
         }
         return res
+
+
