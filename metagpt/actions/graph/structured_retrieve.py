@@ -41,18 +41,6 @@ class StructuredRetrieve(Action):
     entities:List[str] = []
     graph: Neo4jGraph
 
-    # def __init__(self, entities: List[str], graph: Neo4jGraph):
-    #     """
-    #     Args:
-    #         entities: A list of entities extracted from the question.
-    #         graph: The Neo4j graph to use for structured retrieval.
-    #     """
-    #     print("enter entities",entities)
-    #     print("type entities",type(entities)) # type entities <class 'list'>
-        
-    #     self.entities = entities
-    #     self.graph = graph
-
     def update_index(self) -> None:
         """
         Update the index of the graph with a list of entities.
@@ -88,8 +76,6 @@ class StructuredRetrieve(Action):
 
         for entity in self.entities:
             print("sr entity:", entity)
-
-
 
             query = generate_full_text_query(entity) if len(entity)>5 else 'property CONTAINS "'+entity+'"'
             print("sr query:", query)
@@ -159,3 +145,23 @@ if __name__ == "__main__":
     asyncio.run(main())
 
 
+
+
+# embedding 相似度 demo （待测试）
+# response = self.graph.query(
+#     f"""
+#     CALL apoc.periodic.iterate(
+#       'MATCH (n:__Entity__) RETURN n',
+#       'WITH n, gds.alpha.similarity.cosine({{node1: {query_embedding_str}, node2: n.embedding}}) AS score
+#        WHERE score > 0.8
+#        RETURN n, score',
+#       {{batchSize: 1000, iterateList: true}}
+#     ) YIELD batches, total
+#     RETURN n, score
+#     ORDER BY score DESC
+#     LIMIT 50
+#     """
+# )
+
+# for record in response:
+#     print(record)
