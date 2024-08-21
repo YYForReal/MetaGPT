@@ -1,11 +1,72 @@
 from typing import List
 from metagpt.actions import Action
-from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
+# from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
 import asyncio
 from langchain_community.graphs import Neo4jGraph
 
 
 MAX_CONTENT_LENGTH = 80000
+
+def remove_lucene_chars(text: str) -> str:
+    """Remove Lucene special characters except ^ """
+    special_chars = [
+        "+",
+        "&",
+        "|",
+        "!",
+        "(",
+        ")",
+        "{",
+        "}",
+        "[",
+        "]",
+        '"',
+        "~",
+        "*",
+        "?",
+        ":",
+        "\\",
+    ]
+    for char in special_chars:
+        if char in text:
+            text = text.replace(char, " ")
+    return text.strip()
+
+
+query_desc = """CALL db.index.fulltext.queryNodes('entity', $query, {limit:2})
+YIELD node,score
+WITH node, score, COALESCE(node.description, '') AS description
+CALL {
+    WITH node
+    MATCH (n)-[r]->(neighbor)
+    WHERE n.id = node.id
+    RETURN n.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
+    UNION
+    WITH node
+    MATCH (n)<-[r]-(neighbor)
+    WHERE n.id = node.id
+    RETURN neighbor.id + ' - ' + type(r) + ' -> ' +  n.id AS output
+}
+RETURN node, description, output  LIMIT 50
+"""
+
+query_desc_en = """CALL db.index.fulltext.queryNodes('entity', $query, {limit:2})
+YIELD node,score
+WITH node, score, COALESCE(node.description_en, '') AS description_en
+CALL {
+    WITH node
+    MATCH (n)-[r]->(neighbor)
+    WHERE n.id = node.id
+    RETURN n.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
+    UNION
+    WITH node
+    MATCH (n)<-[r]-(neighbor)
+    WHERE n.id = node.id
+    RETURN neighbor.id + ' - ' + type(r) + ' -> ' +  n.id AS output
+}
+RETURN node, description_en, output  LIMIT 50
+"""
+
 
 def generate_full_text_query(input: str) -> str:
     """
@@ -17,29 +78,44 @@ def generate_full_text_query(input: str) -> str:
     them using the AND operator. Useful for mapping entities from user questions
     to database values, and allows for some misspellings.
     """
-    full_text_query = ""
-    # words = [el for el in remove_lucene_chars(input).split() if el]
-    words = [el for el in input.split() if el]
+    full_text_query = ""    
+    print("before",input)
+    before = input[:]
+    input = input.replace("^", "OWN_IMPORTANCE_KEY")
+    print("change",input)
 
+    words = [el for el in remove_lucene_chars(input).split() if el]
+    # input = input.replace("SSSSS", "^")
+    words = [el.replace("OWN_IMPORTANCE_KEY","^") for el in words]
+
+    if before == input:
+        print("no change")
+    else:
+        print("words",words)
+
+
+
+    # words = [el for el in input.split() if el]
 
     # mohu = min(len(words)//2, 2)
     for word in words[:-1]:
-        full_text_query += f" {word} OR "
+        full_text_query += f" {word}  "
     full_text_query += f" {words[-1]}"
 
     #     full_text_query += f" {word}~{mohu} OR "
     # full_text_query += f" {words[-1]}~{mohu}"
 
-
-    print("full text query ",full_text_query)
+    print("full text query ", full_text_query)
     return full_text_query.strip()
+
 
 class StructuredRetrieve(Action):
     """Action class for structured retrieval of entity neighborhoods."""
 
     name: str = "StructuredRetrieve"
-    entities:List[str] = []
+    entities: List[str] = []
     graph: Neo4jGraph
+    language: str = 'en'
 
     def update_index(self) -> None:
         """
@@ -58,8 +134,6 @@ class StructuredRetrieve(Action):
             "CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]"
         )
 
-
-
     async def run(self, *args, **kwargs) -> str:
         """
         Execute the action to collect the neighborhood of entities mentioned in the question.
@@ -77,74 +151,53 @@ class StructuredRetrieve(Action):
         for entity in self.entities:
             print("sr entity:", entity)
 
-            query = generate_full_text_query(entity) if len(entity)>5 else 'property CONTAINS "'+entity+'"'
-            print("sr query:", query)
+            # query = generate_full_text_query(entity) if len(
+            #     entity) > 5 else 'property CONTAINS "'+entity+'"'
+            query = generate_full_text_query(entity)
             
-            # response = self.graph.query(
-            #     """CALL db.index.fulltext.queryNodes('entity', $query, {limit:2})
-            #     YIELD node,score
-            #     WITH node, score
-            #     CALL {
-            #       MATCH (node)-[r]->(neighbor)
-            #       RETURN node.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
-            #       UNION
-            #       MATCH (node)<-[r]-(neighbor)
-            #       RETURN neighbor.id + ' - ' + type(r) + ' -> ' +  node.id AS output
-            #     }
-            #     RETURN output LIMIT 50
-            #     """,
-            #     {"query": query},
-            # )
-            response = self.graph.query(
-"""CALL db.index.fulltext.queryNodes('entity', $query, {limit:2})
-YIELD node,score
-WITH node, score, COALESCE(node.description, '') AS description
-CALL {
-    WITH node
-    MATCH (n)-[r]->(neighbor)
-    WHERE n.id = node.id
-    RETURN n.id + ' - ' + type(r) + ' -> ' + neighbor.id AS output
-    UNION
-    WITH node
-    MATCH (n)<-[r]-(neighbor)
-    WHERE n.id = node.id
-    RETURN neighbor.id + ' - ' + type(r) + ' -> ' +  n.id AS output
-}
-RETURN node, description, output  LIMIT 50
-""",
-{"query": query},
-)
 
+            print("sr query:", query)
+
+            query_str = query_desc_en if self.language == 'en' else query_desc
+            desc_title = "description_en" if self.language == 'en' else "description"
+            response = self.graph.query(
+                query_str,
+                {"query": query},
+            )
 
             # print("==============")
             # print("response:", response)
             key = 'id'
 
-            ids = list(set([("\n**"+el['node']['id'] + ' description**: ' + el['description']) if el['description'] else '' for el in response]))
-            ids = sorted(ids)            
-            
+            ids = list(set([("\n**"+el['node']['id'] + f' {desc_title}**: ' +
+                       el[desc_title]) if el[desc_title] else '' for el in response]))
+            ids = sorted(ids)
+
             key = 'output'
-            response = list(set([el[key] if el[key] else '' for el in response]))
-            response = sorted(response)            
-            result += "\n\n".join(ids) + "\n============\n图关系：" + "\n".join(response)
+            response = list(
+                set([el[key] if el[key] else '' for el in response]))
+            response = sorted(response)
+            # 过滤空结果
+            response = [el for el in response if el != '']
+            
+            result += "\n\n".join(ids) + \
+                "\n============\n图关系：" if len(response)>0 else '' + "\n".join(response)
 
         return result
 
 
 # Example usage
 async def main():
-    entities = ["HTML p标签"]
-    retriever_action = StructuredRetrieve(entities=entities,graph=Neo4jGraph())
+    entities = ["HTML border-collapse^2", "CSS flex-direction^3"]
+    retriever_action = StructuredRetrieve(
+        entities=entities, graph=Neo4jGraph())
     structured_result = await retriever_action.run()
     print("==========")
     print(structured_result)
 
 
-
 if __name__ == "__main__":
     asyncio.run(main())
-
-
 
 
 # embedding 相似度 demo （待测试）

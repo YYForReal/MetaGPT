@@ -19,7 +19,7 @@ Copyright (c) 2024 by YYForReal, All Rights Reserved.
 from typing import Dict
 
 from metagpt.actions import Action
-from metagpt.prompts.graph.desc import GENERATE_DESC_TEMPLATE
+from metagpt.prompts.graph.desc import GENERATE_DESC_TEMPLATE, GENERATE_DESC_TEMPLATE_EN
 
 
 MAX_CONTENT_LENGTH = 80000
@@ -36,7 +36,7 @@ class GenerateDescription(Action):
     name: str = "GenerateDescription"
     kp_node: dict = dict()
     style: str = "Informative"
-    language: str = "Chinese"
+    language: str = ""
 
     async def run(self, *args, **kwargs) -> Dict:
         """Execute the action to generate a description based on the source and topic.
@@ -50,17 +50,26 @@ class GenerateDescription(Action):
             print(f"id 1: {self.kp_node['id']} has been cut")
             content = content[:MAX_CONTENT_LENGTH] + "..."  # 截断过长的内容 
 
+        # if self.language == "Chinese":
         prompt = GENERATE_DESC_TEMPLATE.format(id=self.kp_node['id'], content=content)
+        desc = await self._aask(prompt=prompt)
+        # else:
 
-        print("prompt length:", len(prompt))
+        prompt = GENERATE_DESC_TEMPLATE_EN.format(id=self.kp_node['id'], content=content)
+        desc_en = await self._aask(prompt=prompt)
+
+
+        # print("prompt length:", len(prompt))
         # print("===========")
 
-        desc = await self._aask(prompt=prompt)
+
+
         res = {
             "id":self.kp_node['id'],
             # "content":self.kp_node['content'],
             "metadata":self.kp_node['metadata'],
-            "description":desc
+            "description":desc,
+            "description_en":desc_en,
         }
         return res
 

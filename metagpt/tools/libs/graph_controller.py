@@ -20,7 +20,7 @@ load_dotenv()
         "get_schema",
         "get_subgraph",
         "custom_query",
-        "update_entity_labels",  # 注册新的函数
+        "update_entity_labels",  
     ],
 )
 class GraphController:
@@ -88,16 +88,17 @@ class GraphController:
 
         return relationships
 
-    def custom_query(self, cypher: str):
-        """Execute a custom Cypher query and return the results.
+    def custom_query(self, query: str, params: dict):
+        """Query Neo4j database.
 
         Args:
-            cypher (str): The custom Cypher query to execute.
+            query (str): The Cypher query to execute.
+            params (dict): The parameters to pass to the query.
 
         Returns:
-            list: List of query results.
+            List[Dict[str, Any]]: The list of dictionaries containing the query results.
         """
-        result = self.graph.query(cypher)
+        result = self.graph.query(query,params)
         return result
 
     def update_entity_labels(self):

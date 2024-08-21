@@ -28,7 +28,11 @@ input: JS的DOM元素操作怎么和HTML的h1标签使用？
 output: ['JS DOM^2', 'HTML h1^2']
 
 **注意**
-接下来给出实际输入，请直接以数组形式输出，不要输出其他内容。
+1. 提取的实体输出不要包含括号等特殊字符（除了^），如:
+不应出现['JSON.stringify()^2'], 应该输出为['JSON stringify^2']
+不应出现['CSS Height/Width^2'], 应该输出为['CSS Height^2','CSS Width^2']
+
+2. 接下来给出实际输入，请直接以数组形式输出，不要输出其他内容。
 
 **输入**
 input: {question}
@@ -44,6 +48,7 @@ class ExtractEntities(Action):
 
     Args:
         name: The name of the action.
+        template_mode: The template mode for generating the prompt. 1 means thinking importance
     """
 
     name: str = "ExtractEntities"

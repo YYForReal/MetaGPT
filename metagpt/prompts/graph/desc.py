@@ -32,6 +32,24 @@ GENERATE_DESC_TEMPLATE = """
 要求：
 1. 描述要易于理解，包含节点的关键特点和价值。
 2. 不要使用过多的符号表示。
-3. 语言表达要流畅自然。
+3. 尽量生成描述性的句子，例如'Javascript原型是指...','CSS3动画是...';
+4. 禁止出现任何提及节点或页面的话语。如 '这个节点...'，'该页面...'。
 """
 
+GENERATE_DESC_TEMPLATE_EN = """
+Here is the information about a web node:
+Node Name (ID): {id}
+Web Content Fragment (starting and ending with '============'): 
+============
+{content}
+
+============
+Based on the above information and your knowledge, please generate an accurate, clear, and descriptive piece of information about the node `{id}` to help users better understand its meaning, purpose, and importance.
+
+Requirements:
+1. The description should be easy to understand and include key features and value of the node.
+2. Avoid using excessive symbols.
+3. Aim to generate descriptive sentences, such as 'JavaScript prototypes refer to...', 'CSS3 animations are...';
+4. Do not include any structural references to the node or page, such as 'This node ...', 'This page ...'.
+5. output using Engish.
+"""

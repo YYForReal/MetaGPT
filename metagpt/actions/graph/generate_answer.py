@@ -16,10 +16,32 @@ PROMPT_TEMPLATE = """
 ## 问题
 {question}
 ============
-请提供详细的答案，并确保在回答中涵盖相关的领域知识和背景信息。如有URL链接、日期等内容，注意保持完整。
+请提供准确的答案，并确保在回答中涵盖相关的领域知识和背景信息。如有URL链接、日期等内容，注意保持完整。
+输出语言与用户提出的`问题`语言保持一致 (English or Chinese)
 
 **输出**
 """
+
+EVAL_PROMPT_TEMPLATE = """
+作为一名 {role}，你将根据上下文来回答用户的问题。
+
+============
+## 上下文
+{context}
+============
+## 问题
+{question}
+============
+请提供准确的答案，并确保在回答中涵盖相关的领域知识和背景信息。如有URL链接、日期等内容，注意保持完整。
+输出语言与用户提出的`问题`语言{language}保持一致 
+
+**输出**
+"""
+
+
+
+
+
 
 class GenerateAnswer(Action):
     """Action class for generating a high-quality prompt and using LLM to get the answer.
@@ -31,6 +53,8 @@ class GenerateAnswer(Action):
     name: str = "GenerateAnswer"
     role: str = "Web专家"
     topic: str = 'Web'
+    is_eval: bool = False
+    language: str = ""
 
     async def run(self, question, context: str = "") -> Dict:
         """Execute the action to generate an answer based on the context, question, and topic.
@@ -44,7 +68,9 @@ class GenerateAnswer(Action):
         """
         
         # Generate the prompt based on the provided context, question, topic, and role
-        prompt = PROMPT_TEMPLATE.format(role=self.role, topic=self.topic, context=context, question=question)
+        prompt = PROMPT_TEMPLATE.format(role=self.role, topic=self.topic, context=context, question=question,language=self.language)
+        if self.is_eval:
+            prompt = EVAL_PROMPT_TEMPLATE.format(role=self.role, topic=self.topic, context=context, question=question,language=self.language)
 
         # Call self._aask to get the answer from the LLM
         answer: str

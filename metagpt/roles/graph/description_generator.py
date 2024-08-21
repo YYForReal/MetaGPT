@@ -37,7 +37,7 @@ class DescriptionGenerator(Role):
     profile: str = "Description Generator"
     goal: str = "Generate descriptions for nodes"
     constraints: str = "Strictly follow with concise and standardized layout."
-    language: str = "Chinese"
+    language: str = ""
 
     topic: str = ""
     source_path: str = ""
