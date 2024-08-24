@@ -62,6 +62,10 @@ class ExtractEntities(Action):
 
         Returns:
             A dictionary containing the extracted entities.
+            {
+                "question": question,
+                "entities": entities : List[str] 
+            }
         """
         
         # Generate the prompt with the user question

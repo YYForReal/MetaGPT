@@ -68,6 +68,8 @@ RETURN node, description_en, output  LIMIT 50
 """
 
 
+
+
 def generate_full_text_query(input: str) -> str:
     """
     Generate a full-text search query for a given input string.
@@ -134,7 +136,7 @@ class StructuredRetrieve(Action):
             "CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]"
         )
 
-    async def run(self, *args, **kwargs) -> str:
+    async def run(self, entities:List[str] = [] , *args, **kwargs) -> str:
         """
         Execute the action to collect the neighborhood of entities mentioned in the question.
 
@@ -148,8 +150,11 @@ class StructuredRetrieve(Action):
         result = ""
         entity_desc = []
 
-        for entity in self.entities:
-            print("sr entity:", entity)
+        all_ids = []
+        all_rels = []
+
+        for entity in entities:
+            print("search entity:", entity)
 
             # query = generate_full_text_query(entity) if len(
             #     entity) > 5 else 'property CONTAINS "'+entity+'"'
@@ -160,6 +165,8 @@ class StructuredRetrieve(Action):
 
             query_str = query_desc_en if self.language == 'en' else query_desc
             desc_title = "description_en" if self.language == 'en' else "description"
+            relationship_title = 'output'
+
             response = self.graph.query(
                 query_str,
                 {"query": query},
@@ -167,23 +174,29 @@ class StructuredRetrieve(Action):
 
             # print("==============")
             # print("response:", response)
-            key = 'id'
 
-            ids = list(set([("\n**"+el['node']['id'] + f' {desc_title}**: ' +
-                       el[desc_title]) if el[desc_title] else '' for el in response]))
-            ids = sorted(ids)
+            ids = sorted(list(set([
+                "**"+el['node']['id'] + "**"  + f' {desc_title}: ' + el[desc_title] if el[desc_title] else '' for el in response])))
 
-            key = 'output'
-            response = list(
-                set([el[key] if el[key] else '' for el in response]))
-            response = sorted(response)
-            # 过滤空结果
-            response = [el for el in response if el != '']
+            neighbor_relationships = sorted(list(
+                set([el[relationship_title] if el[relationship_title] else '' for el in response])))
             
-            result += "\n\n".join(ids) + \
-                "\n============\n图关系：" if len(response)>0 else '' + "\n".join(response)
+            # 过滤空结果
+            neighbor_relationships = [el for el in neighbor_relationships if el != '']
+            
+            print("neighbor_relationships len",len(neighbor_relationships))
+            print("neighbor_relationships ",(neighbor_relationships))
+            if len(ids) > 0:
+                result += "\n\n**entities**:\n"
+                result += "\n\n".join(ids) 
+            if len(neighbor_relationships)>0:
+                result += "\n\n**relationships**:\n"
+                result += "\n".join(neighbor_relationships)
 
-        return result
+            all_ids.extend(ids)
+            all_rels.extend(neighbor_relationships)
+
+        return result, ids, all_rels
 
 
 # Example usage
@@ -191,9 +204,13 @@ async def main():
     entities = ["HTML border-collapse^2", "CSS flex-direction^3"]
     retriever_action = StructuredRetrieve(
         entities=entities, graph=Neo4jGraph())
-    structured_result = await retriever_action.run()
+    structured_result,ids,all_rels = await retriever_action.run()
     print("==========")
     print(structured_result)
+    print("==========")
+    print("ids", ids)
+    print("==========")
+    print("all_rels", all_rels)
 
 
 if __name__ == "__main__":
