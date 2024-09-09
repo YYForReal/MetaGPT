@@ -11,7 +11,8 @@
 
 from datetime import datetime
 from typing import Dict, List
-
+import re
+from urllib.parse import urljoin
 import os
 
 from metagpt.actions.graph.generate_desc import GenerateDescription
@@ -126,6 +127,18 @@ class DescriptionGenerator(Role):
         try:
             output_node = await todo.run(topic=self.topic)
             logger.info(output_node)
+            
+            # 追加绝对路径
+            # res = {
+            #     "id":self.kp_node['id'],
+            #     # "content":self.kp_node['content'],
+            #     "metadata":self.kp_node['metadata'],
+            #     "description":desc,
+            #     "description_en":desc_en,
+            # }
+            output_node['description'] = self.detect_and_complete_links(output_node['description'].strip(),output_node['metadata'].get("sourceURL", ""))  
+            output_node['description_en'] = self.detect_and_complete_links(output_node['description_en'].strip(),output_node['metadata'].get("sourceURL", ""))  
+
             self.output_nodes.append(output_node)
             # [从finish_count 开始计算]，且满足todo.node['id']相同的节点，都使用同一个description
             
@@ -149,6 +162,50 @@ class DescriptionGenerator(Role):
             json.dump(self.output_nodes, file, ensure_ascii=False)
         msg.content = output_path
         return msg
+
+
+
+
+    def detect_and_complete_links(self, text: str, baseURL: str) -> str:
+        """
+        检测文本中是否存在超链接，并补全相对路径的链接。
+        
+        参数:
+        - text: 要检测的文本。
+        - baseURL: 用于补全相对路径的基本 URL。
+        
+        返回:
+        - 补全后的文本。
+        """
+        # 正则表达式模式，用于匹配 Markdown 格式的链接
+        pattern = r'\[(.*?)\]\((.*?)\)'
+        print("补全超链接: ", baseURL)
+        def replace_relative_links(match):
+            link_text = match.group(1)
+            link_url = match.group(2)
+
+            # 判断是否是相对路径（例如：不以 'http://'、'https://' 或 '//' 开头的路径）
+            if not re.match(r'^(http://|https://|//)', link_url):
+                # 补全相对路径为绝对路径
+                link_url = urljoin(baseURL, link_url)
+            
+            # 返回补全后的链接格式
+            return f"[{link_text}]({link_url})"
+
+        # 使用 re.sub 替换相对路径链接
+        updated_text = re.sub(pattern, replace_relative_links, text)
+        return updated_text
+
+# # 示例文本
+# text = """
+# ...具有重要价值，例如通过 XMLHttpRequest 下拉列表等。相关链接为：https://www.w3school.com.cn/js/js_json_html.asp ' 接为：![你好](https://www.w3school.com.cn/js/js_json_html.asp) ' 从从服务器获取数据并进行相应处理，以及处理以数组形式返回的 JSON 数据等。同时，还提供了相关的链接，如 [JSON 数组](/js/js_json_arrays.asp "JSON 数组") 和 [JSON PHP](/js/js_json_php.asp "JSON PHP")，以方便用户深入了解相关知识。
+# """
+
+# # 调用函数补全相对路径
+# baseURL = "https://www.w3school.com.cn"
+# result = detect_and_complete_links(text, baseURL)
+# print(result)
+
 
 
 

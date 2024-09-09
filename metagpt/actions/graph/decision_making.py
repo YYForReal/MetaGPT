@@ -33,8 +33,8 @@ DECISION_PROMPT_TEMPLATE = """
 
 **示例2**
 - 操作选择: 2
-- 操作理由: 原本检索实体表达HTML border的权重不够，需要通过^重新调整border为2倍的实体表达的权重。
-- 操作参数: ['HTML border^2']
+- 操作理由: 原本检索user-adjustable element size无结果，可以通过^重新调整实体表达的权重，且更换相似近义词扩大搜索范围。
+- 操作参数: ['element size^2','resizable']
 
 **示例3**
 - 操作选择: 3
@@ -51,7 +51,7 @@ DECISION_PROMPT_TEMPLATE = """
 JSON_REFORMAT_PROMPT_TEMPLATE = """
 **提示**
 将以下内容转为JSON格式，其中包括三个键:'operation'、'reason' 和 'parameters'。
-operation的值为整数:'1'、'2'或者'3'。reason的值为字符串，parameters的值是一个列表，若无参数，则为空列表。
+operation的值为整数:'1'、'2'或者'3'。reason的值为字符串，parameters的值是一个列表，若无参数，则为空列表。直接输出对应JSON结果即可。
 
 **内容**
 {decision_result}
@@ -121,6 +121,10 @@ class DecisionMaking(Action):
         if not operation_match or not reason_match or not parameters_match:
             print("Error parsing decision result, trying to reformat...")
             decision = await self.reformat_decision(decision_result)
+            if decision is None:
+                decision = {
+
+                }
         else:
             try:
                 decision = {

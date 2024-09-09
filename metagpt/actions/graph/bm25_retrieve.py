@@ -27,7 +27,7 @@ class BM25Retrieve(Action):
 
     def preprocess_text(self, text: str) -> str:
         """文本预处理，如分词和去除特殊字符。"""
-        print(f"预处理文本: {text}")
+        # print(f"预处理文本: {text}")
         processed_text = remove_lucene_chars(text)
         print(f"预处理后: {processed_text}")
         return processed_text
@@ -71,7 +71,7 @@ class BM25Retrieve(Action):
         # 获取 BM25 得分
         print("计算 BM25 得分...")
         scores = self.bm25.get_scores(preprocessed_question.split(" "))
-        print(f"BM25 得分: {scores}")
+        # print(f"BM25 得分: {scores}")
 
         # 根据得分检索前 k 个结果
         top_k_indices = scores.argsort()[-self.k:][::-1]
@@ -85,9 +85,9 @@ class BM25Retrieve(Action):
         # 排序结果
         top_k_results.sort(key=lambda x: x['score'], reverse=True)
         # 打印前 k 个结果及其 BM25 得分
-        print("前 k 个结果及其 BM25 分数：")
-        for result in top_k_results:
-            print(f"节点ID: {result['node_id']}, 描述: {result['description']}, 分数: {result['score']}")
+        # print("前 k 个结果及其 BM25 分数：")
+        # for result in top_k_results:
+        #     print(f"节点ID: {result['node_id']}, 描述: {result['description']}, 分数: {result['score']}")
 
         return top_k_results
 
@@ -101,7 +101,7 @@ async def main():
     bm25_retriever = BM25Retrieve(graph=mock_graph, k=5)
     
     # 模拟用户查询
-    user_query = "JavaScript objects are containers for named values."
+    user_query = "What are JavaScript objects?"
     
     # 执行检索操作
     bm25_results = await bm25_retriever.run(user_query)
@@ -110,6 +110,7 @@ async def main():
     print("========== 检索结果 ==========")
     for result in bm25_results:
         print(f"Node ID: {result['node_id']}")
+        print(f"Score: {result['score']}")
         print(f"Description: {result['description']}")
         print("-------------------------------")
 
