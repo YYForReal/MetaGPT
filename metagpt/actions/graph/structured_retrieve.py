@@ -89,6 +89,7 @@ class StructuredRetrieve(Action):
         all_ids = []
         all_rels = []
 
+        nodes = []
         for entity in entities:
             print("search entity:", entity)
 
@@ -113,7 +114,7 @@ class StructuredRetrieve(Action):
 
             # 去重并保留排序后的结果
             ids = list(dict.fromkeys(ids))
-
+            nodes.extend([el['node']['id']  for el in sorted_response if el['node']['id']  ])
 
             neighbor_relationships = sorted(list(
                 set([el[relationship_title] if el[relationship_title] else '' for el in response])
@@ -131,7 +132,7 @@ class StructuredRetrieve(Action):
             all_ids.extend(ids)
             all_rels.extend(neighbor_relationships)
 
-        return result, all_ids, all_rels
+        return result, all_ids, all_rels , nodes 
 
 
 # Example usage

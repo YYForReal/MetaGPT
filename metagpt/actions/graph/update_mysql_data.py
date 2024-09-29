@@ -62,9 +62,13 @@ class UpdateGraphFromMySQLAction(Action):
             print("Updating experiment data...")
             last_synced_question_id = self.get_last_synced_id('Experiment')
             print(f"Last synced question ID: {last_synced_question_id}")
+            # cursor.execute(
+            #     "SELECT question_id, title, description, html FROM question WHERE question_id > %s",
+            #     (last_synced_question_id,))
             cursor.execute(
-                "SELECT question_id, title, description, html FROM question WHERE question_id > %s",
-                (last_synced_question_id,))
+                "SELECT question_id, title, description, html ,tag FROM question ",
+                )
+
             questions = cursor.fetchall()
             print(f"Fetched {len(questions)} questions from MySQL.")
             for question in questions:
@@ -74,12 +78,14 @@ class UpdateGraphFromMySQLAction(Action):
                 SET e.title = $title,
                     e.description = $description,
                     e.html = $html
+                    e.tag = $tag
                 """
                 self.graph.query(question_query, {
                     "question_id": question['question_id'],
                     "title": question['title'],
                     "description": question['description'],
-                    "html": question['html']
+                    "html": question['html'],
+                    "tag":question['tag']
                 })
                 self.set_last_synced_id('Experiment', question['question_id'])
                 print(f"Experiment {question['question_id']} updated.")
