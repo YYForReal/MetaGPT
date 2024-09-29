@@ -33,7 +33,7 @@ class WriteOutline(Action):
             title: 小说标题。
         返回:
             包含大纲信息的教程目录，
-            包括{"title": "..", "characters": ["角色名"..], "chapters": [{"第一章.."}]}。
+            包括{{"title": "xxx", "characters": ["David, a hero in...", "Bob, an young boy..."],"chapters":{{"第一章 ":"xx","第二章":"xx",...}} }}
         """
         prompt = DIRECTORY_PROMPT.format(title=title, language=self.language)  
         resp = await self._aask(prompt=prompt)  # 通过aask方法请求大模型

@@ -108,6 +108,18 @@ if __name__ == "__main__":
           }
         ]
     }'
+
+    curl http://192.168.174.1:7860/v1/chat/completions -X POST -d '{
+        "model": "write_tutorial",
+        "stream": true,
+        "messages": [
+          {
+               "role": "user",
+               "content": "Write a tutorial about MySQL"
+          }
+        ]
+    }'
+
     """
     server_port = 7860
     server_address = socket.gethostbyname(socket.gethostname())

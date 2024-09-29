@@ -164,8 +164,6 @@ class DescriptionGenerator(Role):
         return msg
 
 
-
-
     def detect_and_complete_links(self, text: str, baseURL: str) -> str:
         """
         检测文本中是否存在超链接，并补全相对路径的链接。

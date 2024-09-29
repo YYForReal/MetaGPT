@@ -18,20 +18,20 @@ from metagpt.utils.file import File
 
 
 class NovelAuthor(Role):
-    """Novel author, input one sentence to generate a novel in markup format.
+    """小说作者，输入一句话生成一个标记格式的小说。
 
     Args:
-        name: The name of the role.
-        profile: The role profile description.
-        goal: The goal of the role.
-        constraints: Constraints or requirements for the role.
-        language: The language in which the tutorial documents will be generated.
+        name: 角色名称。
+        profile: 角色简介。
+        goal: 角色目标。
+        constraints: 角色的约束或要求。
+        language: 生成小说的语言。
     """
 
     name: str = "YYForReal"
-    profile: str = "Novel Author"
-    goal: str = "Generate a fantastic novel"
-    constraints: str = "Maintain a consistent narrative voice, with engaging dialogue and vivid descriptions"
+    profile: str = "小说作者"
+    goal: str = "生成一个奇幻小说"
+    constraints: str = "保持一致的叙述风格，包含引人入胜的对话和生动的描述"
     language: str = "Chinese"
 
     topic: str = ""
@@ -39,27 +39,36 @@ class NovelAuthor(Role):
     characters: list = []
     total_content: str = ""
 
+    file_path: str = ""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 保存时间戳为实例变量
+        self.timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.root_path = NOVEL_PATH / self.timestamp
+        # 其他初始化代码
         self.set_actions([WriteOutline(language=self.language)])
         self._set_react_mode(react_mode=RoleReactMode.BY_ORDER.value)
 
     async def _handle_outline(self, outline_dict: Dict) -> Message:
-        """Handle the outline for the novel.
+        """处理小说的大纲。
 
         Args:
-            outline_dict: A dictionary containing the outline_dict and directory structure,
-                    such as {"title": "xxx", "chapters": [{"dir 1": ["sub dir 1", "sub dir 2"]}]}
+            outline_dict: 包含大纲和目录结构的字典，例如：
+                          {"title": "xxx", "chapters": [{"章节1": ["子章节1", "子章节2"]}]}
 
         Returns:
-            A message containing information about the directory.
+            包含目录信息的消息。
         """
         self.main_title = outline_dict.get("title")
         self.characters = outline_dict.get("characters")
         directory = f"{self.main_title}\n"
         self.total_content += f"# {self.main_title}"
-        actions = list()
+        actions = list(self.actions)
         for first_dir in outline_dict.get("chapters"):
+            # print(f"outline_dict.get() === > {outline_dict.get('chapters')}")
+            print(f"first_dir ===> {first_dir}")
+            # input("==================请输入内容===================")
             actions.append(WriteContent(language=self.language, chapters=first_dir,
                                         characters=str(self.characters)))
             key = list(first_dir.keys())[0]
@@ -67,55 +76,43 @@ class NovelAuthor(Role):
             for second_dir in first_dir[key]:
                 directory += f"  - {second_dir}\n"
         self.set_actions(actions)
+        self.rc.max_react_loop = len(self.actions)
+        msg = Message(content=directory, role=self.profile)
+        self.rc.memory.add(msg)
+        return msg
 
-    # 执行角色的动作
     async def _act(self) -> Message:
-        # 获取角色的待办事项
         todo = self.rc.todo
-        # 判断待办事项的类型
-        if type(todo) is WriteOutline:
-            # 从记忆中获取最新的1条消息
+        if isinstance(todo, WriteOutline):
             msg = self.rc.memory.get(k=1)[0]
-            # 设置主题
             self.topic = msg.content
-            # 执行待办事项的动作，传入主题作为参数
             resp = await todo.run(title=self.topic)
-            logger.info(resp)
-            # 等待用户确认是否准备好继续
-            input("===================ready to continue ??===================")
-            # 处理大纲的响应
+            # self.log_to_streamlit(f"生成大纲: {resp}\n")
             await self._handle_outline(resp)
-            # 返回角色的反应
-            return await super().react()
-        
-        elif type(todo) is WriteContent:
-            # 从记忆中获取最新的消息内容
+            msg = Message(content="大纲已处理，动作列表已更新。", role=self.profile)
+            self.rc.memory.add(msg)
+            return msg
+        elif isinstance(todo, WriteContent):
             memory = self.rc.memory.get(k=1)[0].content
-            print("memory：", memory)
-            # 执行待办事项的动作，传入主题和记忆作为参数
             resp = await todo.run(title=self.topic, memory=memory)
-            logger.info(resp)
-            # 如果总内容不为空，则添加新行
+            # self.log_to_streamlit(f"生成内容: {resp}\n")
             if self.total_content != "":
                 self.total_content += "\n\n\n"
-            # 将执行结果添加到总内容中
             self.total_content += resp
-            # 创建一个消息对象，包含响应内容
             msg = Message(content=resp, role=self.profile)
-            # 将消息添加到记忆中
             self.rc.memory.add(msg)
             return msg
 
-        # resp = await todo.run(title=self.topic)
-        # logger.info(resp)
-        # if self.total_content != "":
-        #     self.total_content += "\n\n\n"
-        # self.total_content += resp
-        # return Message(content=resp, role=self.profile)
+    def get_novel_file_path(self):
+        # 返回生成的小说文件路径
+        return str(self.root_path / f"{self.main_title}.md")
+
+
 
     async def react(self) -> Message:
         msg = await super().react()
-        root_path = NOVEL_PATH / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        await File.write(root_path, f"{self.main_title}.md", self.total_content.encode("utf-8"))
-        msg.content = str(root_path / f"{self.main_title}.md")
+        # 使用保存的 root_path
+        await File.write(self.root_path, f"{self.main_title}.md", self.total_content.encode("utf-8"))
+        msg.content = str(self.root_path / f"{self.main_title}.md")
         return msg
+
